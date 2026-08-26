@@ -13,11 +13,13 @@ class LanguageSettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l['settings_language_section']),
         centerTitle: true,
+        toolbarHeight: isLandscape ? 40 : null,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

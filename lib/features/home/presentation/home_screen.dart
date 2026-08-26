@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/localization/locale_controller.dart';
@@ -32,11 +31,26 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _entranceController;
+
   @override
   void initState() {
     super.initState();
-    widget.controller.loadSessions();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.controller.loadSessions();
+    });
+    
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
   }
 
   void _openBackup() {
@@ -65,75 +79,106 @@ class _HomeScreenState extends State<HomeScreen> {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     return AnimatedBuilder(
-      animation: widget.controller,
+      animation: Listenable.merge([widget.controller, _entranceController]),
       builder: (context, _) {
         final sessions = widget.controller.sessions;
         final recentSessions = _sessionsInLast7Days(sessions);
         final recentMinutes = recentSessions.fold<int>(0, (sum, s) => sum + s.durationMinutes);
 
-        final summaryCard = Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _SummaryStat(
-                  icon: Icons.hot_tub_rounded,
-                  color: theme.colorScheme.primary,
-                  value: '${recentSessions.length}',
-                  label: l['sessions_total'],
-                ),
-                Container(height: 40, width: 1, color: theme.dividerColor.withValues(alpha: 0.5)),
-                _SummaryStat(
-                  icon: Icons.timer_rounded,
-                  color: theme.colorScheme.secondary,
-                  value: '$recentMinutes',
-                  unit: l['minutes_abbr'],
-                  label: l['sauna_time_total'],
-                ),
-              ],
+        final summaryCard = _AnimatedEntrance(
+          controller: _entranceController,
+          delay: 0,
+          child: Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _SummaryStat(
+                    icon: Icons.hot_tub_rounded,
+                    color: theme.colorScheme.primary,
+                    value: '${recentSessions.length}',
+                    label: l['sessions_total'],
+                  ),
+                  Container(height: 40, width: 1, color: theme.dividerColor.withValues(alpha: 0.5)),
+                  _SummaryStat(
+                    icon: Icons.timer_rounded,
+                    color: theme.colorScheme.secondary,
+                    value: '$recentMinutes',
+                    unit: l['minutes_abbr'],
+                    label: l['sauna_time_total'],
+                  ),
+                ],
+              ),
             ),
           ),
         );
 
-        final activityCard = WeeklyActivityCard(
-          sessions: sessions,
-          localeController: widget.localeController,
+        final activityCard = _AnimatedEntrance(
+          controller: _entranceController,
+          delay: 0.1,
+          child: WeeklyActivityCard(
+            sessions: sessions,
+            userProfileController: widget.userProfileController,
+          ),
         );
 
-        final caloriesCard = AnimatedBuilder(
-          animation: widget.userProfileController,
-          builder: (context, _) => _buildCaloriesCard(context, sessions),
+        final caloriesCard = _AnimatedEntrance(
+          controller: _entranceController,
+          delay: 0.2,
+          child: AnimatedBuilder(
+            animation: widget.userProfileController,
+            builder: (context, _) => _buildCaloriesCard(context, sessions),
+          ),
         );
 
-        final sessionListHeader = Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              l['recent_sessions'],
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            if (sessions.isNotEmpty && widget.onViewAllHistory != null)
-              TextButton(
-                onPressed: widget.onViewAllHistory,
-                child: Text(l['view_all']),
+        final sessionListHeader = _AnimatedEntrance(
+          controller: _entranceController,
+          delay: 0.3,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                l['recent_sessions'],
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
-          ],
+              if (sessions.isNotEmpty && widget.onViewAllHistory != null)
+                TextButton(
+                  onPressed: widget.onViewAllHistory,
+                  child: Text(l['view_all']),
+                ),
+            ],
+          ),
         );
 
-        final sessionList = sessions.isEmpty
-            ? [_NoSessionsPlaceholder(l: l)]
-            : sessions.take(5).map((session) => SessionCard(
-                  session: session,
-                  onTap: () => widget.onSessionTap?.call(session),
-                )).toList();
+        final sessionItems = sessions.isEmpty
+            ? [_AnimatedEntrance(
+                controller: _entranceController,
+                delay: 0.4,
+                child: _NoSessionsPlaceholder(l: l),
+              )]
+            : sessions.take(5).toList().asMap().entries.map((entry) {
+                final index = entry.key;
+                final session = entry.value;
+                return _AnimatedEntrance(
+                  controller: _entranceController,
+                  delay: 0.4 + (index * 0.1),
+                  child: SessionCard(
+                    session: session,
+                    onTap: () => widget.onSessionTap?.call(session),
+                  ),
+                );
+              }).toList();
 
         return Scaffold(
+          backgroundColor: Colors.transparent,
           appBar: AppBar(
+            elevation: 0,
             title: Text(l['app_title']),
             centerTitle: true,
+            toolbarHeight: isLandscape ? 40 : null,
             actions: [
               IconButton(
                 icon: const Icon(Icons.backup_outlined),
@@ -150,22 +195,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Left side: Stats and Charts
                             Expanded(
                               flex: 4,
                               child: ListView(
                                 padding: const EdgeInsets.all(16),
                                 children: [
                                   summaryCard,
+                                  activityCard,
                                   const SizedBox(height: 12),
                                   caloriesCard,
-                                  const SizedBox(height: 12),
-                                  activityCard,
                                 ],
                               ),
                             ),
                             const VerticalDivider(width: 1),
-                            // Right side: Recent Sessions
                             Expanded(
                               flex: 3,
                               child: ListView(
@@ -173,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 children: [
                                   sessionListHeader,
                                   const SizedBox(height: 8),
-                                  ...sessionList,
+                                  ...sessionItems,
                                 ],
                               ),
                             ),
@@ -183,14 +225,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.all(16.0),
                           children: [
                             summaryCard,
-                            const SizedBox(height: 16),
                             activityCard,
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
                             caloriesCard,
                             const SizedBox(height: 24),
                             sessionListHeader,
                             const SizedBox(height: 8),
-                            ...sessionList,
+                            ...sessionItems,
                           ],
                         ),
                 ),
@@ -245,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.25),
+      color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.60),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
@@ -284,6 +325,45 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   bool _isSameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+}
+
+class _AnimatedEntrance extends StatelessWidget {
+  final Widget child;
+  final AnimationController controller;
+  final double delay;
+
+  const _AnimatedEntrance({
+    required this.child,
+    required this.controller,
+    required this.delay,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final start = delay;
+    final end = (delay + 0.6).clamp(0.0, 1.0);
+
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        final curve = CurvedAnimation(
+          parent: controller,
+          curve: Interval(start, end, curve: Curves.easeOutBack),
+        );
+        
+        final opacity = curve.value.clamp(0.0, 1.0);
+        
+        return Opacity(
+          opacity: opacity,
+          child: Transform.translate(
+            offset: Offset(0, 30 * (1 - opacity)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
 }
 
 class _SummaryStat extends StatelessWidget {

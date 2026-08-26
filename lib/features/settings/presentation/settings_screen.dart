@@ -13,8 +13,6 @@ import 'settings_language_screen.dart';
 import 'settings_profile_screen.dart';
 import 'settings_theme_screen.dart';
 
-/// Main settings screen — "master" navigation across config sections.
-/// Each section opens a dedicated sub-screen (master-detail).
 class SettingsScreen extends StatelessWidget {
   final LocaleController localeController;
   final ThemeController themeController;
@@ -75,78 +73,7 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-
-    final header = Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primaryContainer,
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.hot_tub_rounded,
-                color: theme.colorScheme.onPrimary,
-                size: 32,
-              ),
-            ),
-            const SizedBox(width: 20),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Sauna Time',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                Text(
-                  'v1.0.0 • PRO',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.8,
-                    ),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     final sections = [
       _SettingsTile(
@@ -221,18 +148,17 @@ class SettingsScreen extends StatelessWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(l['settings_title']), centerTitle: true),
+      // Wysokie krycie (98%), aby tło było niemal jednolite, ale z lekkim "duchem" obrazka
+      backgroundColor: theme.colorScheme.surface.withValues(alpha: 0.98),
+      appBar: AppBar(
+        // Używa AppBarTheme z motywu (0.94 alpha)
+        title: Text(l['settings_title']),
+        centerTitle: true,
+        toolbarHeight: isLandscape ? 40 : null,
+      ),
       body: isLandscape
           ? Row(
               children: [
-                Expanded(
-                  flex: 2,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [header, const SizedBox(height: 16), dangerZone],
-                  ),
-                ),
-                const VerticalDivider(width: 1),
                 Expanded(
                   flex: 3,
                   child: GridView(
@@ -247,13 +173,19 @@ class SettingsScreen extends StatelessWidget {
                     children: sections,
                   ),
                 ),
+                const VerticalDivider(width: 1),
+                Expanded(
+                  flex: 2,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [dangerZone],
+                  ),
+                ),
               ],
             )
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                header,
-                const SizedBox(height: 24),
                 ...sections.map(
                   (tile) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -268,7 +200,6 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-/// Settings section tile with icon, title, description and navigation arrow.
 class _SettingsTile extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
@@ -290,7 +221,7 @@ class _SettingsTile extends StatelessWidget {
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,
-      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -304,7 +235,7 @@ class _SettingsTile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.15),
+                  color: iconColor.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: iconColor, size: 24),

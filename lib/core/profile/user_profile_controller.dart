@@ -11,6 +11,7 @@ class UserProfileController extends ChangeNotifier {
   static const String _weightKey = 'sauna_time_user_weight_kg';
   static const String _ageKey = 'sauna_time_user_age';
   static const String _saunaTypeKey = 'sauna_time_preferred_sauna_type';
+  static const String _activityDisplayModeKey = 'sauna_time_activity_display_mode';
 
   UserProfile _profile = const UserProfile();
 
@@ -27,12 +28,26 @@ class UserProfileController extends ChangeNotifier {
       final weight = prefs.getDouble(_weightKey);
       final age = prefs.getInt(_ageKey);
       final saunaTypeStr = prefs.getString(_saunaTypeKey);
+      final activityModeStr = prefs.getString(_activityDisplayModeKey);
+
+      ActivityDisplayMode loadedMode = ActivityDisplayMode.totalOnly;
+      if (activityModeStr != null) {
+        try {
+          loadedMode = ActivityDisplayMode.values.byName(activityModeStr);
+        } catch (_) {
+          // Fallback for legacy "totalAndHeating" name which I might have used in previous turns
+          if (activityModeStr == 'totalAndHeating') {
+            loadedMode = ActivityDisplayMode.sideBySide;
+          }
+        }
+      }
 
       _profile = UserProfile(
         sex: sexStr == 'female' ? UserSex.female : UserSex.male,
         weightKg: (weight ?? 75).clamp(30, 250).toDouble(),
         ageYears: (age ?? 30).clamp(10, 120),
         preferredSaunaType: SaunaType.fromJson(saunaTypeStr),
+        activityDisplayMode: loadedMode,
       );
       notifyListeners();
     } catch (_) {}
@@ -81,6 +96,17 @@ class UserProfileController extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_saunaTypeKey, type.name);
+    } catch (_) {}
+  }
+
+  Future<void> setActivityDisplayMode(ActivityDisplayMode mode) async {
+    if (_profile.activityDisplayMode == mode) return;
+    _profile = _profile.copyWith(activityDisplayMode: mode);
+    notifyListeners();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_activityDisplayModeKey, mode.name);
     } catch (_) {}
   }
 }

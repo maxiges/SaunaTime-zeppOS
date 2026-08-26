@@ -10,7 +10,7 @@ import '../../domain/models/sauna_phase.dart';
 
 /// Telemetry chart displaying heart rate or temperature data.
 /// Has an interactive full-screen view with precise inspection.
-class TelemetryChart extends StatelessWidget {
+class TelemetryChart extends StatefulWidget {
   final String title;
   final String unit;
   final List<MeasurementSample> samples;
@@ -31,12 +31,40 @@ class TelemetryChart extends StatelessWidget {
   });
 
   @override
+  State<TelemetryChart> createState() => _TelemetryChartState();
+}
+
+class _TelemetryChartState extends State<TelemetryChart> with SingleTickerProviderStateMixin {
+  late AnimationController _drawController;
+  late Animation<double> _drawAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _drawController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _drawAnimation = CurvedAnimation(
+      parent: _drawController,
+      curve: Curves.easeInOutCubic,
+    );
+    _drawController.forward();
+  }
+
+  @override
+  void dispose() {
+    _drawController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (samples.isEmpty) return const SizedBox.shrink();
+    if (widget.samples.isEmpty) return const SizedBox.shrink();
 
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final values = samples.map((s) => s.value).toList();
+    final values = widget.samples.map((s) => s.value).toList();
     final minValue = values.reduce(math.min);
     final maxValue = values.reduce(math.max);
     final avgValue = values.reduce((a, b) => a + b) / values.length;
@@ -51,11 +79,11 @@ class TelemetryChart extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, color: lineColor, size: 22),
+                Icon(widget.icon, color: widget.lineColor, size: 22),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    title,
+                    widget.title,
                     style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -70,21 +98,27 @@ class TelemetryChart extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildCompactStat(l['chart_min'], '${minValue.toStringAsFixed(0)} $unit', theme),
-                _buildCompactStat(l['chart_avg'], '${avgValue.toStringAsFixed(0)} $unit', theme),
-                _buildCompactStat(l['chart_max'], '${maxValue.toStringAsFixed(0)} $unit', theme),
+                _buildCompactStat(l['chart_min'], '${minValue.toStringAsFixed(0)} ${widget.unit}', theme),
+                _buildCompactStat(l['chart_avg'], '${avgValue.toStringAsFixed(0)} ${widget.unit}', theme),
+                _buildCompactStat(l['chart_max'], '${maxValue.toStringAsFixed(0)} ${widget.unit}', theme),
               ],
             ),
             const SizedBox(height: 16),
             SizedBox(
               height: 130,
               width: double.infinity,
-              child: _ChartInteractive(
-                samples: samples,
-                lineColor: lineColor,
-                gridColor: theme.dividerColor.withValues(alpha: 0.2),
-                unit: unit,
-                phaseNames: phaseNames,
+              child: AnimatedBuilder(
+                animation: _drawAnimation,
+                builder: (context, child) {
+                  return _ChartInteractive(
+                    samples: widget.samples,
+                    lineColor: widget.lineColor,
+                    gridColor: theme.dividerColor.withValues(alpha: 0.2),
+                    unit: widget.unit,
+                    phaseNames: widget.phaseNames,
+                    progress: _drawAnimation.value,
+                  );
+                }
               ),
             ),
           ],
@@ -98,12 +132,12 @@ class TelemetryChart extends StatelessWidget {
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (context) => _FullScreenChartPage(
-          title: title,
-          unit: unit,
-          samples: samples,
-          lineColor: lineColor,
-          icon: icon,
-          phaseNames: phaseNames,
+          title: widget.title,
+          unit: widget.unit,
+          samples: widget.samples,
+          lineColor: widget.lineColor,
+          icon: widget.icon,
+          phaseNames: widget.phaseNames,
         ),
       ),
     );
@@ -313,6 +347,7 @@ class _ChartInteractive extends StatefulWidget {
   final String unit;
   final Map<SaunaPhase, String>? phaseNames;
   final bool fullScreen;
+  final double progress;
 
   const _ChartInteractive({
     required this.samples,
@@ -321,6 +356,7 @@ class _ChartInteractive extends StatefulWidget {
     required this.unit,
     this.phaseNames,
     this.fullScreen = false,
+    this.progress = 1.0,
   });
 
   @override
@@ -385,6 +421,7 @@ class _ChartInteractiveState extends State<_ChartInteractive> {
                     textColor: theme.colorScheme.onSurfaceVariant,
                     selectedIndex: _selectedIndex,
                     showLabels: widget.fullScreen,
+                    progress: widget.progress,
                   ),
                 ),
               ),
@@ -470,6 +507,7 @@ class _ChartPainter extends CustomPainter {
   final Color textColor;
   final int? selectedIndex;
   final bool showLabels;
+  final double progress;
 
   _ChartPainter({
     required this.samples,
@@ -478,6 +516,7 @@ class _ChartPainter extends CustomPainter {
     required this.textColor,
     this.selectedIndex,
     this.showLabels = false,
+    this.progress = 1.0,
   });
 
   @override
@@ -515,6 +554,9 @@ class _ChartPainter extends CustomPainter {
       points.add(Offset(x, y));
     }
 
+    canvas.save();
+    canvas.clipRect(Rect.fromLTWH(0, 0, size.width * progress, size.height + 40));
+
     // Phase gradients
     for (var i = 0; i < points.length - 1; i++) {
       final color = sorted[i].phase?.color ?? lineColor;
@@ -544,6 +586,8 @@ class _ChartPainter extends CustomPainter {
         ..strokeJoin = StrokeJoin.round
         ..style = PaintingStyle.stroke);
     }
+
+    canvas.restore();
 
     // Inspection indicator
     if (selectedIndex != null && selectedIndex! < points.length) {
@@ -590,7 +634,7 @@ class _ChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ChartPainter old) => 
-      old.selectedIndex != selectedIndex || old.samples != samples || old.showLabels != showLabels;
+      old.selectedIndex != selectedIndex || old.samples != samples || old.showLabels != showLabels || old.progress != progress;
 }
 
 class _PhaseLegendChip extends StatelessWidget {

@@ -339,8 +339,14 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
     );
 
     return Scaffold(
+      backgroundColor: theme.colorScheme.surface, // Opaque background to hide main bg
       appBar: AppBar(
+        backgroundColor: theme.colorScheme.surface, // Opaque AppBar
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
         title: Text(l[isEditing ? 'edit_session' : 'add_session_title']),
+        centerTitle: true,
+        toolbarHeight: isLandscape ? 40 : null,
         actions: isLandscape ? [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -353,38 +359,74 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
           ),
         ] : null,
       ),
-      body: Form(
-        key: _formKey,
-        child: isLandscape 
-          ? Row(
-              children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.all(20),
-                    children: _buildFormFields(l, theme, true),
-                  ),
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.all(20),
-                    children: _buildFormFields(l, theme, false),
-                  ),
-                ),
-              ],
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ..._buildFormFields(l, theme, true),
-                  ..._buildFormFields(l, theme, false),
-                  const SizedBox(height: 24),
-                  saveButton,
-                ],
+      body: Stack(
+        children: [
+          // 1. Solid surface background layer
+          Positioned.fill(
+            child: Container(color: theme.colorScheme.surface),
+          ),
+          // 2. Additional decorative background elements (blobs)
+          Positioned(
+            top: -100,
+            right: -80,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: theme.colorScheme.primary.withValues(alpha: 0.07),
               ),
             ),
+          ),
+          Positioned(
+            bottom: -50,
+            left: -60,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: theme.colorScheme.secondary.withValues(alpha: 0.05),
+              ),
+            ),
+          ),
+          // 3. The actual Form content
+          Positioned.fill(
+            child: Form(
+              key: _formKey,
+              child: isLandscape 
+                ? Row(
+                    children: [
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.all(20),
+                          children: _buildFormFields(l, theme, true),
+                        ),
+                      ),
+                      const VerticalDivider(width: 1),
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.all(20),
+                          children: _buildFormFields(l, theme, false),
+                        ),
+                      ),
+                    ],
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ..._buildFormFields(l, theme, true),
+                        ..._buildFormFields(l, theme, false),
+                        const SizedBox(height: 24),
+                        saveButton,
+                      ],
+                    ),
+                  ),
+            ),
+          ),
+        ],
       ),
     );
   }

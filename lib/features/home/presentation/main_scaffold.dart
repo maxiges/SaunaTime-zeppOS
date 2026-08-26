@@ -59,6 +59,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     final List<Widget> screens = [
@@ -92,70 +93,79 @@ class _MainScaffoldState extends State<MainScaffold> {
       builder: (context, _) {
         final l2 = AppLocalizations.of(context);
         
+        Widget body;
         if (isLandscape) {
-          return Scaffold(
-            body: Row(
-              children: [
-                NavigationRail(
-                  selectedIndex: _currentIndex,
-                  onDestinationSelected: _onTabSelected,
-                  // We hide labels on very low height screens to be safe
-                  labelType: MediaQuery.of(context).size.height < 400 
-                      ? NavigationRailLabelType.none 
-                      : NavigationRailLabelType.all,
-                  groupAlignment: -0.8,
-                  leading: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: FloatingActionButton.small(
-                      elevation: 0,
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => AddSessionScreen(
-                              controller: widget.sessionController,
-                              userProfileController: widget.userProfileController,
-                            ),
+          body = Row(
+            children: [
+              NavigationRail(
+                selectedIndex: _currentIndex,
+                onDestinationSelected: _onTabSelected,
+                labelType: MediaQuery.of(context).size.height < 400
+                    ? NavigationRailLabelType.none
+                    : NavigationRailLabelType.all,
+                groupAlignment: -0.8,
+                leading: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: FloatingActionButton.small(
+                    // Explicit heroTag to avoid collision with portrait FAB
+                    heroTag: 'fab_main_landscape',
+                    elevation: 0,
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => AddSessionScreen(
+                            controller: widget.sessionController,
+                            userProfileController: widget.userProfileController,
                           ),
-                        );
-                      },
-                      child: const Icon(Icons.add_rounded),
-                    ),
+                        ),
+                      );
+                    },
+                    child: const Icon(Icons.add_rounded),
                   ),
-                  destinations: [
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.dashboard_outlined),
-                      selectedIcon: const Icon(Icons.dashboard_rounded),
-                      label: Text(l2['tab_dashboard']),
-                    ),
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.history_outlined),
-                      selectedIcon: const Icon(Icons.history_rounded),
-                      label: Text(l2['tab_history']),
-                    ),
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.calendar_month_outlined),
-                      selectedIcon: const Icon(Icons.calendar_month_rounded),
-                      label: Text(l2['tab_calendar']),
-                    ),
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.settings_outlined),
-                      selectedIcon: const Icon(Icons.settings_rounded),
-                      label: Text(l2['settings_title']),
-                    ),
-                  ],
                 ),
-                const VerticalDivider(thickness: 1, width: 1),
-                Expanded(
-                  child: IndexedStack(index: _currentIndex, children: screens),
+                destinations: [
+                  NavigationRailDestination(
+                    icon: const Icon(Icons.dashboard_outlined),
+                    selectedIcon: const Icon(Icons.dashboard_rounded),
+                    label: Text(l2['tab_dashboard']),
+                  ),
+                  NavigationRailDestination(
+                    icon: const Icon(Icons.history_outlined),
+                    selectedIcon: const Icon(Icons.history_rounded),
+                    label: Text(l2['tab_history']),
+                  ),
+                  NavigationRailDestination(
+                    icon: const Icon(Icons.calendar_month_outlined),
+                    selectedIcon: const Icon(Icons.calendar_month_rounded),
+                    label: Text(l2['tab_calendar']),
+                  ),
+                  NavigationRailDestination(
+                    icon: const Icon(Icons.settings_outlined),
+                    selectedIcon: const Icon(Icons.settings_rounded),
+                    label: Text(l2['settings_title']),
+                  ),
+                ],
+              ),
+              const VerticalDivider(thickness: 1, width: 1),
+              Expanded(
+                child: _AnimatedTabSwitcher(
+                  index: _currentIndex,
+                  children: screens,
                 ),
-              ],
-            ),
+              ),
+            ],
+          );
+        } else {
+          body = _AnimatedTabSwitcher(
+            index: _currentIndex,
+            children: screens,
           );
         }
 
         return Scaffold(
-          body: IndexedStack(index: _currentIndex, children: screens),
-          bottomNavigationBar: NavigationBar(
+          backgroundColor: Colors.transparent,
+          body: body,
+          bottomNavigationBar: isLandscape ? null : NavigationBar(
             selectedIndex: _currentIndex,
             onDestinationSelected: _onTabSelected,
             destinations: [
@@ -181,8 +191,10 @@ class _MainScaffoldState extends State<MainScaffold> {
               ),
             ],
           ),
-          floatingActionButton: _currentIndex == 0 || _currentIndex == 1
+          floatingActionButton: !isLandscape && (_currentIndex == 0 || _currentIndex == 1)
               ? FloatingActionButton.extended(
+                  // Explicit heroTag to avoid collision with landscape FAB
+                  heroTag: 'fab_main_portrait',
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -199,6 +211,39 @@ class _MainScaffoldState extends State<MainScaffold> {
               : null,
         );
       },
+    );
+  }
+}
+
+class _AnimatedTabSwitcher extends StatelessWidget {
+  final int index;
+  final List<Widget> children;
+
+  const _AnimatedTabSwitcher({required this.index, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.02, 0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            )),
+            child: child,
+          ),
+        );
+      },
+      child: KeyedSubtree(
+        key: ValueKey<int>(index),
+        child: children[index],
+      ),
     );
   }
 }

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:intl/intl.dart';
 import '../../sessions/domain/models/sauna_session.dart';
 
 class BackupResult {
@@ -19,31 +18,6 @@ class BackupService {
       'sessions': sessions.map((s) => s.toJson()).toList(),
     };
     return const JsonEncoder.withIndent('  ').convert(data);
-  }
-
-  String exportSessionsToCsv(List<SaunaSession> sessions) {
-    final dateFormat = DateFormat('yyyy-MM-dd');
-    final timeFormat = DateFormat('HH:mm');
-
-    final buffer = StringBuffer();
-    // CSV Header
-    buffer.writeln('ID,Data,Godzina,Czas_trwania_min,Temperatura_C,Zrodlo,Srednie_tetno_bpm,Max_tetno_bpm,Notatki');
-
-    for (final s in sessions) {
-      final id = s.id;
-      final date = dateFormat.format(s.startTime);
-      final time = timeFormat.format(s.startTime);
-      final duration = s.durationMinutes;
-      final temp = s.temperature != null ? s.temperature!.toStringAsFixed(1) : '';
-      final source = s.source.displayName;
-      final avgHr = s.averageHeartRate != null ? '${s.averageHeartRate}' : '';
-      final maxHr = s.maxHeartRate != null ? '${s.maxHeartRate}' : '';
-      final notes = s.notes != null ? '"${s.notes!.replaceAll('"', '""')}"' : '""';
-
-      buffer.writeln('$id,$date,$time,$duration,$temp,$source,$avgHr,$maxHr,$notes');
-    }
-
-    return buffer.toString();
   }
 
   List<SaunaSession> parseSessionsFromJson(String jsonString) {

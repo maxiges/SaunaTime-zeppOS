@@ -305,65 +305,68 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     final estimate = calorieEstimate;
 
     // Split components for layout
-    final basicInfoCard = Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+    final basicInfoCard = Hero(
+      tag: 'session_card_${_session.id}',
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      _session.source == SessionSource.watchHttp ? Icons.watch_rounded : Icons.edit_calendar_rounded,
+                      color: theme.colorScheme.primary,
+                      size: 28,
+                    ),
                   ),
-                  child: Icon(
-                    _session.source == SessionSource.watchHttp ? Icons.watch_rounded : Icons.edit_calendar_rounded,
-                    color: theme.colorScheme.primary,
-                    size: 28,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(dateFormat.format(_session.startTime),
+                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                        Text(l.sourceLabel(_session.source),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                                color: _session.source == SessionSource.watchHttp
+                                    ? theme.colorScheme.secondary
+                                    : theme.colorScheme.onSurfaceVariant)),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(dateFormat.format(_session.startTime),
-                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                      Text(l.sourceLabel(_session.source),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                              color: _session.source == SessionSource.watchHttp
-                                  ? theme.colorScheme.secondary
-                                  : theme.colorScheme.onSurfaceVariant)),
-                    ],
+                ],
+              ),
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  InkWell(
+                    onTap: () => setState(() => _showExactDuration = !_showExactDuration),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: _buildMetricTile(context, icon: Icons.timer_outlined, label: l['details_duration'],
+                          value: durationText, color: theme.colorScheme.primary),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const Divider(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                InkWell(
-                  onTap: () => setState(() => _showExactDuration = !_showExactDuration),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                    child: _buildMetricTile(context, icon: Icons.timer_outlined, label: l['details_duration'],
-                        value: durationText, color: theme.colorScheme.primary),
-                  ),
-                ),
-                _buildMetricTile(context, icon: _session.saunaType == SaunaType.steam ? Icons.cloud_outlined : Icons.wb_sunny_outlined,
-                    label: l['session_sauna_type'], value: _session.saunaType == SaunaType.steam ? l['sauna_type_steam'] : l['sauna_type_dry'],
-                    color: theme.colorScheme.secondary),
-                _buildMetricTile(context, icon: Icons.access_time_rounded, label: l['details_time_range'],
-                    value: '${timeFormat.format(_session.startTime)} - ${timeFormat.format(endTime)}', color: theme.colorScheme.tertiary),
-              ],
-            ),
-          ],
+                  _buildMetricTile(context, icon: _session.saunaType == SaunaType.steam ? Icons.cloud_outlined : Icons.wb_sunny_outlined,
+                      label: l['session_sauna_type'], value: _session.saunaType == SaunaType.steam ? l['sauna_type_steam'] : l['sauna_type_dry'],
+                      color: theme.colorScheme.secondary),
+                  _buildMetricTile(context, icon: Icons.access_time_rounded, label: l['details_time_range'],
+                      value: '${timeFormat.format(_session.startTime)} - ${timeFormat.format(endTime)}', color: theme.colorScheme.tertiary),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -399,7 +402,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
 
     final caloriesCard = Card(
       elevation: 1,
-      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
+      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.7),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -457,6 +460,8 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(l['details_title']),
+        centerTitle: true,
+        toolbarHeight: isLandscape ? 40 : null,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),

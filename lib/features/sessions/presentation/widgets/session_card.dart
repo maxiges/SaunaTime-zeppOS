@@ -29,141 +29,148 @@ class SessionCard extends StatelessWidget {
     final hasMultiplePhases = session.phases.length > 1;
     final showHeating = hasMultiplePhases && heatingMin != null;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-          width: 1.2,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
+    // Use theme card color or fallback to surface container with transparency
+    final cardColor = theme.cardTheme.color ??
+                      theme.colorScheme.surfaceContainer.withValues(alpha: 0.9);
+
+    return Hero(
+      tag: 'session_card_${session.id}',
+      child: Container(
+        margin: EdgeInsets.only(bottom: 5.0),
+        decoration: BoxDecoration(
+          color: cardColor,
           borderRadius: BorderRadius.circular(24),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // --- Header ---
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.calendar_today_rounded,
-                        size: 16,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            dateFormat.format(session.startTime),
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.1,
-                            ),
-                          ),
-                          Text(
-                            timeFormat.format(session.startTime),
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _buildDurationDisplay(context, l, showHeating, heatingMin),
-                  ],
-                ),
-
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-                  ),
-                ),
-
-                // --- Metrics ---
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (session.temperature != null)
-                      _MetricItem(
-                        icon: Icons.thermostat_rounded,
-                        value: '${session.temperature!.toStringAsFixed(0)}°',
-                        color: Colors.orange,
-                        label: l['details_temperature'],
-                      ),
-                    if (session.averageHeartRate != null)
-                      _MetricItem(
-                        icon: Icons.favorite_rounded,
-                        value: '${session.averageHeartRate}',
-                        color: AppColors.warmRed,
-                        label: l['avg_abbr'],
-                      ),
-                    if (session.maxHeartRate != null)
-                      _MetricItem(
-                        icon: Icons.bolt_rounded,
-                        value: '${session.maxHeartRate}',
-                        color: AppColors.warmRed.withValues(alpha: 0.6),
-                        label: 'MAX',
-                        isSmall: true,
-                      ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // --- Footer ---
-                Row(
-                  children: [
-                    _buildTypeBadge(context, l),
-                    const SizedBox(width: 8),
-                    if (session.source == SessionSource.watchHttp)
-                      _buildSourceBadge(context, l),
-                    if (session.notes != null && session.notes!.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          session.notes!,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                            fontStyle: FontStyle.italic,
-                            fontSize: 10,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+          boxShadow: [
+            BoxShadow(
+              color: theme.shadowColor.withValues(alpha: 0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+            width: 1.2,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(24),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- Header ---
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.calendar_today_rounded,
+                          size: 16,
+                          color: theme.colorScheme.primary,
                         ),
                       ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              dateFormat.format(session.startTime),
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.1,
+                              ),
+                            ),
+                            Text(
+                              timeFormat.format(session.startTime),
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _buildDurationDisplay(context, l, showHeating, heatingMin),
                     ],
-                  ],
-                ),
-              ],
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                    ),
+                  ),
+
+                  // --- Metrics ---
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (session.temperature != null)
+                        _MetricItem(
+                          icon: Icons.thermostat_rounded,
+                          value: '${session.temperature!.toStringAsFixed(0)}°',
+                          color: Colors.orange,
+                          label: l['details_temperature'],
+                        ),
+                      if (session.averageHeartRate != null)
+                        _MetricItem(
+                          icon: Icons.favorite_rounded,
+                          value: '${session.averageHeartRate}',
+                          color: AppColors.warmRed,
+                          label: l['avg_abbr'],
+                        ),
+                      if (session.maxHeartRate != null)
+                        _MetricItem(
+                          icon: Icons.bolt_rounded,
+                          value: '${session.maxHeartRate}',
+                          color: AppColors.warmRed.withValues(alpha: 0.6),
+                          label: 'MAX',
+                          isSmall: true,
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // --- Footer ---
+                  Row(
+                    children: [
+                      _buildTypeBadge(context, l),
+                      const SizedBox(width: 8),
+                      if (session.source == SessionSource.watchHttp)
+                        _buildSourceBadge(context, l),
+                      if (session.notes != null && session.notes!.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            session.notes!,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                              fontStyle: FontStyle.italic,
+                              fontSize: 10,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -176,7 +183,7 @@ class SessionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh,
+        color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
       ),

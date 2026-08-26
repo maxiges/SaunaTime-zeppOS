@@ -113,8 +113,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
         final allSessions = widget.controller.sessions;
         final filteredSessions = _getFilteredAndSortedSessions(allSessions);
 
-        final filterBar = Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        final filterBar = Container(
+          margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+            ),
+          ),
           child: Row(
             children: [
               Expanded(
@@ -124,7 +132,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   decoration: InputDecoration(
                     labelText: l['source_label'],
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    border: const OutlineInputBorder(),
+                    filled: true,
+                    fillColor: theme.colorScheme.surface.withValues(alpha: 0.4),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                   items: [
                     DropdownMenuItem(value: null, child: Text(l['source_all'])),
@@ -142,7 +155,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   decoration: InputDecoration(
                     labelText: l['sort_label'],
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    border: const OutlineInputBorder(),
+                    filled: true,
+                    fillColor: theme.colorScheme.surface.withValues(alpha: 0.4),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                   items: HistorySortOption.values.map((opt) {
                     return DropdownMenuItem(value: opt, child: Text(l[opt.labelKey]));
@@ -177,9 +195,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         padding: const EdgeInsets.all(16.0),
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          mainAxisExtent: 220, // Increased from 200 to prevent overflow
+                          mainAxisExtent: 170,
                           crossAxisSpacing: 12,
-                          mainAxisSpacing: 0,
+                          mainAxisSpacing: 1,
                         ),
                         itemCount: filteredSessions.length,
                         itemBuilder: (context, index) => _buildSessionItem(filteredSessions[index]),
@@ -187,12 +205,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     : ListView.builder(
                         padding: const EdgeInsets.all(16.0),
                         itemCount: filteredSessions.length,
-                        itemBuilder: (context, index) => _buildSessionItem(filteredSessions[index]),
+                        itemBuilder: (context, index) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8), // Kontrolowany odstęp w ListView
+                          child: _buildSessionItem(filteredSessions[index]),
+                        ),
                       ),
               );
 
         return Scaffold(
-          appBar: AppBar(title: Text(l['history_title']), centerTitle: true),
+          appBar: AppBar(
+            title: Text(l['history_title']),
+            centerTitle: true,
+            toolbarHeight: isLandscape ? 40 : null,
+          ),
           body: Column(
             children: [
               filterBar,
@@ -215,10 +240,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: AppColors.warmRed,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
         ),
         child: const Icon(Icons.delete_rounded, color: Colors.white),
       ),

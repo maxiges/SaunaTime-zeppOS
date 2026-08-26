@@ -30,15 +30,13 @@ class _BackupScreenState extends State<BackupScreen> {
     _backupService = widget.backupService ?? BackupService();
   }
 
-  /// Exports sessions to a user-selected file (JSON or CSV).
-  Future<void> _exportToFile({required bool asCsv}) async {
+  /// Exports sessions to a user-selected JSON file.
+  Future<void> _exportToFile() async {
     final l = AppLocalizations.of(context);
     final sessions = widget.controller.sessions;
-    final content = asCsv
-        ? _backupService.exportSessionsToCsv(sessions)
-        : _backupService.exportSessionsToJson(sessions);
+    final content = _backupService.exportSessionsToJson(sessions);
     final stamp = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
-    final ext = asCsv ? 'csv' : 'json';
+    const ext = 'json';
     final fileName = 'sauna_time_$stamp.$ext';
 
     try {
@@ -48,7 +46,7 @@ class _BackupScreenState extends State<BackupScreen> {
         bytes: Uint8List.fromList(utf8.encode(content)),
         type: FileType.custom,
         allowedExtensions: [ext],
-        mimeType: asCsv ? 'text/csv' : 'application/json',
+        mimeType: 'application/json',
       );
 
       if (result == null) return;
@@ -116,9 +114,14 @@ class _BackupScreenState extends State<BackupScreen> {
     final theme = Theme.of(context);
     final l = AppLocalizations.of(context);
     final sessionsCount = widget.controller.sessions.length;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l['backup_title']), centerTitle: true),
+      appBar: AppBar(
+        title: Text(l['backup_title']),
+        centerTitle: true,
+        toolbarHeight: isLandscape ? 40 : null,
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
@@ -131,18 +134,9 @@ class _BackupScreenState extends State<BackupScreen> {
             description: l.backupExportDesc(sessionsCount),
             actions: [
               FilledButton.icon(
-                onPressed: sessionsCount > 0
-                    ? () => _exportToFile(asCsv: false)
-                    : null,
+                onPressed: sessionsCount > 0 ? _exportToFile : null,
                 icon: const Icon(Icons.file_download_outlined),
                 label: Text(l['backup_export_json_btn']),
-              ),
-              FilledButton.tonalIcon(
-                onPressed: sessionsCount > 0
-                    ? () => _exportToFile(asCsv: true)
-                    : null,
-                icon: const Icon(Icons.table_chart_outlined),
-                label: const Text('CSV'),
               ),
             ],
           ),
@@ -179,7 +173,6 @@ class _BackupScreenState extends State<BackupScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        // Using surfaceContainer for a more distinct grey shade
         color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(

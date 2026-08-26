@@ -767,6 +767,7 @@ class _HttpServerScreenState extends State<HttpServerScreen> {
           appBar: AppBar(
             title: Text(l['server_screen_title']),
             centerTitle: true,
+            toolbarHeight: isLandscape ? 40 : null,
           ),
           body: isLandscape
               ? Row(

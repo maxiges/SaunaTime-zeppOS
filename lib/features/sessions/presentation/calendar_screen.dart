@@ -168,7 +168,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
         final calendarCard = Container(
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
+            color: theme.colorScheme.surface.withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
@@ -266,7 +266,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             : Column(
                 children: selectedSessions.map((session) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 6.0),
+                    padding: const EdgeInsets.only(bottom: 1.0),
                     child: SessionCard(
                       session: session,
                       onTap: () {
@@ -280,9 +280,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
               );
 
         return Scaffold(
+          backgroundColor: Colors.transparent,
           appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
             title: Text(l['calendar_title']),
             centerTitle: true,
+            toolbarHeight: isLandscape ? 40 : null,
             actions: [
               IconButton(
                 icon: Icon(
@@ -541,7 +545,7 @@ class _StatStrip extends StatelessWidget {
         vertical: 8,
       ),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
+        color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.1),

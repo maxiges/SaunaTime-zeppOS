@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:sauna_time/core/localization/app_localizations.dart';
@@ -5,7 +6,7 @@ import 'package:sauna_time/core/localization/locale_controller.dart';
 import 'package:sauna_time/core/profile/user_profile_controller.dart';
 import 'package:sauna_time/core/theme/app_colors.dart';
 import 'package:sauna_time/core/theme/theme_controller.dart';
-import 'package:sauna_time/features/home/presentation/main_scaffold.dart';
+import 'package:sauna_time/features/home/presentation/splash_screen.dart';
 import 'package:sauna_time/features/http_server/services/http_server_service.dart';
 import 'package:sauna_time/features/sessions/presentation/session_controller.dart';
 
@@ -32,9 +33,7 @@ void main() {
   );
 }
 
-/// "Warm and cold" palette: orange (warm) + blue (cold).
-/// Color constants are located in `lib/core/theme/app_colors.dart`.
-
+/// Restored full ColorScheme mapping to maintain preferred aesthetics.
 ColorScheme _buildColorScheme(Brightness brightness) {
   final isDark = brightness == Brightness.dark;
   return ColorScheme.fromSeed(
@@ -57,7 +56,6 @@ ColorScheme _buildColorScheme(Brightness brightness) {
     onSecondaryContainer: isDark
         ? AppColors.coldBlueOnContainerDark
         : AppColors.coldBlueOnContainer,
-    // Neutral (gray) card backgrounds — without the pink tint from the seed
     surface: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
     surfaceContainerLowest: isDark
         ? AppColors.surfaceLowestDark
@@ -86,9 +84,90 @@ ColorScheme _buildColorScheme(Brightness brightness) {
 }
 
 ThemeData _buildTheme(Brightness brightness) {
+  final colorScheme = _buildColorScheme(brightness);
+  
   return ThemeData(
     useMaterial3: true,
-    colorScheme: _buildColorScheme(brightness),
+    colorScheme: colorScheme,
+    // Global transparency for screens to reveal the builder-provided background
+    scaffoldBackgroundColor: Colors.transparent,
+    appBarTheme: AppBarTheme(
+      backgroundColor: colorScheme.surface.withValues(alpha: 0.9),
+      elevation: 0,
+      centerTitle: true,
+      surfaceTintColor: Colors.transparent,
+      titleTextStyle: TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+      ),
+      iconTheme: IconThemeData(color: colorScheme.primary),
+    ),
+    cardTheme: CardThemeData(
+      color: colorScheme.surface.withValues(alpha: 0.75),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: colorScheme.surface.withValues(alpha: 0.9),
+      elevation: 0,
+      indicatorColor: Colors.transparent,
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return IconThemeData(
+            color: colorScheme.primary,
+            size: 26,
+            shadows: [
+              Shadow(
+                color: colorScheme.primary.withValues(alpha: 0.5),
+                blurRadius: 12,
+              ),
+            ],
+          );
+        }
+        return IconThemeData(
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+        );
+      }),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return TextStyle(
+            color: colorScheme.primary,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          );
+        }
+        return TextStyle(
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+          fontSize: 12,
+        );
+      }),
+    ),
+    navigationRailTheme: NavigationRailThemeData(
+      backgroundColor: colorScheme.surface.withValues(alpha: 0.9),
+      elevation: 0,
+      indicatorColor: Colors.transparent,
+      selectedIconTheme: IconThemeData(
+        color: colorScheme.primary,
+        size: 28,
+        shadows: [
+          Shadow(
+            color: colorScheme.primary.withValues(alpha: 0.5),
+            blurRadius: 12,
+          ),
+        ],
+      ),
+      unselectedIconTheme: IconThemeData(
+        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+      ),
+      selectedLabelTextStyle: TextStyle(
+        color: colorScheme.primary,
+        fontWeight: FontWeight.w600,
+      ),
+      unselectedLabelTextStyle: TextStyle(
+        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+      ),
+    ),
   );
 }
 
@@ -146,7 +225,34 @@ class _SaunaTimeAppState extends State<SaunaTimeApp> {
       theme: _buildTheme(Brightness.light),
       darkTheme: _buildTheme(Brightness.dark),
       themeMode: widget.themeController.themeMode,
-      home: MainScaffold(
+      builder: (context, child) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        final bgImage = isDark ? 'assets/bg_d.png' : 'assets/bg_l.png';
+        
+        return Stack(
+          children: [
+            // Root background image
+            Positioned.fill(
+              child: Image.asset(
+                bgImage,
+                fit: BoxFit.cover,
+              ),
+            ),
+            // Global glassmorphism effect (Blur + Tint)
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+                child: Container(
+                  color: (isDark ? Colors.black : Colors.white).withValues(alpha: isDark ? 0.7 : 0.7),
+                ),
+              ),
+            ),
+            if (child != null) child,
+          ],
+        );
+      },
+      home: SplashScreen(
         sessionController: widget.sessionController,
         serverService: widget.serverService,
         localeController: widget.localeController,
