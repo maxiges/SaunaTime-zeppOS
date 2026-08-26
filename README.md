@@ -92,3 +92,14 @@ The app is currently available in:
 ## 📄 Release
 
 This project is currently under active development. Features and the data format may change between releases.
+
+English
+How to install the application on an Android phone
+Download the xxxxx.apk file directly to your Android phone.
+Open the downloaded file using a file manager / file browser.
+Follow the on-screen instructions to install the application.
+If Android asks for permission to install apps from this source, allow installation from your file manager or browser in the Android settings.
+Complete the installation and launch the application.
+Alternative: you can download the application from an independent app distributor. By signing up on the page, you will receive email notifications about new releases of the application:
+[Download the application](https://appdistribution.firebase.dev/i/2aa012622aa52b50?utm_source=chatgpt.com)
+
