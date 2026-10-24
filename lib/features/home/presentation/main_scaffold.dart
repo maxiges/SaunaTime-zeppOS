@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/localization/locale_controller.dart';
 import '../../../core/profile/user_profile_controller.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
+import '../../cloud_sync/presentation/cloud_auth_controller.dart';
 import '../../http_server/services/http_server_service.dart';
 import '../../sessions/domain/models/sauna_session.dart';
 import '../../sessions/presentation/add_session_screen.dart';
@@ -21,6 +21,7 @@ class MainScaffold extends StatefulWidget {
   final LocaleController localeController;
   final ThemeController themeController;
   final UserProfileController userProfileController;
+  final CloudAuthController cloudAuthController;
 
   const MainScaffold({
     super.key,
@@ -29,14 +30,50 @@ class MainScaffold extends StatefulWidget {
     required this.localeController,
     required this.themeController,
     required this.userProfileController,
+    required this.cloudAuthController,
   });
 
   @override
   State<MainScaffold> createState() => _MainScaffoldState();
 }
 
-class _MainScaffoldState extends State<MainScaffold> {
+class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver {
   int _currentIndex = 0;
+  bool _autoSyncStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    widget.cloudAuthController.addListener(_maybeAutoSync);
+    _maybeAutoSync();
+  }
+
+  void _maybeAutoSync() {
+    final auth = widget.cloudAuthController;
+    if (!auth.autoSync || !auth.isUnlocked || !auth.isLoggedIn) {
+      _autoSyncStarted = false;
+      return;
+    }
+    if (_autoSyncStarted || auth.isSyncing || auth.isLoading) return;
+    _autoSyncStarted = true;
+    auth.syncWithCloud(widget.sessionController);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _autoSyncStarted = false;
+      _maybeAutoSync();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    widget.cloudAuthController.removeListener(_maybeAutoSync);
+    super.dispose();
+  }
 
   void _onTabSelected(int index) {
     setState(() {
@@ -85,6 +122,7 @@ class _MainScaffoldState extends State<MainScaffold> {
         userProfileController: widget.userProfileController,
         serverService: widget.serverService,
         sessionController: widget.sessionController,
+        cloudAuthController: widget.cloudAuthController,
       ),
     ];
 

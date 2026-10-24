@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../cloud_sync/presentation/cloud_auth_controller.dart';
 import '../../http_server/services/http_server_service.dart';
 import '../../sessions/presentation/session_controller.dart';
 import '../../../core/localization/locale_controller.dart';
@@ -13,6 +13,7 @@ class SplashScreen extends StatefulWidget {
   final LocaleController localeController;
   final ThemeController themeController;
   final UserProfileController userProfileController;
+  final CloudAuthController cloudAuthController;
 
   const SplashScreen({
     super.key,
@@ -21,6 +22,7 @@ class SplashScreen extends StatefulWidget {
     required this.localeController,
     required this.themeController,
     required this.userProfileController,
+    required this.cloudAuthController,
   });
 
   @override
@@ -69,6 +71,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             localeController: widget.localeController,
             themeController: widget.themeController,
             userProfileController: widget.userProfileController,
+            cloudAuthController: widget.cloudAuthController,
           ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);

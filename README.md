@@ -30,62 +30,62 @@ The watch sends the data over the local network directly to the phone. No cloud 
 
 ### Watch data
 
-* Receive telemetry from a Zepp OS / Amazfit watch over the local network.
-* Built-in HTTP server for receiving data from the watch.
-* Live request log to help with setup and troubleshooting.
-* View heart rate and temperature data on charts.
-* Zoom and inspect individual points on the charts.
-* Separate data for heating, cooling, and resting phases.
-* Automatic distinction between skin temperature and sauna temperature.
+- Receive telemetry from a Zepp OS / Amazfit watch over the local network.
+- Built-in HTTP server for receiving data from the watch.
+- Live request log to help with setup and troubleshooting.
+- View heart rate and temperature data on charts.
+- Zoom and inspect individual points on the charts.
+- Separate data for heating, cooling, and resting phases.
+- Automatic distinction between skin temperature and sauna temperature.
 
 ### Sauna sessions
 
-* Add sessions manually.
-* Set session duration, temperature, and heart rate.
-* Track multiple phases within a single session.
-* View session details and telemetry data.
-* Browse your session history.
-* Filter sessions by source (manual entry or smartwatch).
-* Sort and delete sessions.
+- Add sessions manually.
+- Set session duration, temperature, and heart rate.
+- Track multiple phases within a single session.
+- View session details and telemetry data.
+- Browse your session history.
+- Filter sessions by source (manual entry or smartwatch).
+- Sort and delete sessions.
 
 ### Statistics
 
-* Estimated calories burned using the Keytel formula.
-* Different calorie calculation adjustments for dry and steam saunas.
-* Weekly summary of session count and total sauna time.
-* Calendar view for browsing sessions by date or date range.
+- Estimated calories burned using the Keytel formula.
+- Different calorie calculation adjustments for dry and steam saunas.
+- Weekly summary of session count and total sauna time.
+- Calendar view for browsing sessions by date or date range.
 
 ### Data and privacy
 
-* Works offline.
-* No account or cloud service required.
-* All session data is stored locally on the device.
-* Export your session history to JSON.
-* Import previously exported data with duplicate protection.
+- Works offline.
+- No account or cloud service required.
+- All session data is stored locally on the device.
+- Export your session history to JSON.
+- Import previously exported data with duplicate protection.
 
 ### Languages
 
 The app is currently available in:
 
-* English
-* Polish
-* German
-* French
+- English
+- Polish
+- German
+- French
 
 ### Appearance
 
-* Light, dark, and system themes.
-* Warm colors for heating phases and cool colors for cooling phases.
-* Option to display session duration in minutes or exact seconds.
+- Light, dark, and system themes.
+- Warm colors for heating phases and cool colors for cooling phases.
+- Option to display session duration in minutes or exact seconds.
 
 ---
 
 ## 🛠 Tech Stack
 
-* **Flutter / Dart** – cross-platform application development
-* **CustomPainter** – telemetry charts and visualizations
-* **Local HTTP server** – communication between the watch and phone
-* **Shared Preferences** – local application storage
+- **Flutter / Dart** – cross-platform application development
+- **CustomPainter** – telemetry charts and visualizations
+- **Local HTTP server** – communication between the watch and phone
+- **Shared Preferences** – local application storage
 
 ---
 
@@ -103,3 +103,5 @@ This project is currently under active development. Features and the data format
 
 **Alternative:** You can also get the application from an independent app distributor:
 [Download the application](https://appdistribution.firebase.dev/i/2aa012622aa52b50?utm_source=chatgpt.com)
+
+!Due to a lack of security, not the entire code was published.

@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../domain/models/sauna_session.dart';
 
 abstract class SessionStorage {
@@ -62,7 +64,7 @@ class SharedPrefsSessionStorage implements SessionStorage {
 
     final sessions = await getSessions();
     final Map<String, SaunaSession> sessionMap = {
-      for (var s in sessions) s.id: s
+      for (var s in sessions) s.id: s,
     };
 
     for (var ns in newSessions) {
@@ -72,7 +74,9 @@ class SharedPrefsSessionStorage implements SessionStorage {
     final mergedList = sessionMap.values.toList();
     final prefs = await _prefs;
     final jsonList = mergedList.map((s) => s.toJson()).toList();
-    await prefs.setString(_storageKey, jsonEncode(jsonList));
+    if (!await prefs.setString(_storageKey, jsonEncode(jsonList))) {
+      throw StateError('Failed to save sessions');
+    }
   }
 
   @override
@@ -82,12 +86,16 @@ class SharedPrefsSessionStorage implements SessionStorage {
 
     final prefs = await _prefs;
     final jsonList = sessions.map((s) => s.toJson()).toList();
-    await prefs.setString(_storageKey, jsonEncode(jsonList));
+    if (!await prefs.setString(_storageKey, jsonEncode(jsonList))) {
+      throw StateError('Failed to delete session');
+    }
   }
 
   @override
   Future<void> clearAll() async {
     final prefs = await _prefs;
-    await prefs.remove(_storageKey);
+    if (!await prefs.remove(_storageKey)) {
+      throw StateError('Failed to clear sessions');
+    }
   }
 }

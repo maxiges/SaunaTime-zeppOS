@@ -1,0 +1,3 @@
+// Copy to GoogleSignIn.xcconfig and use the REVERSED_CLIENT_ID of your iOS
+// OAuth client. The value is public, and must match GOOGLE_IOS_CLIENT_ID.
+GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.YOUR_IOS_CLIENT_ID

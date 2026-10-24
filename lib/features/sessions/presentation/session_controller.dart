@@ -1,16 +1,18 @@
 import 'package:flutter/foundation.dart';
+
 import '../data/session_storage.dart';
 import '../domain/models/sauna_session.dart';
 
 class SessionController extends ChangeNotifier {
   final SessionStorage _storage;
+  final Future<void> Function(List<String> ids)? onSessionsDeleted;
 
   List<SaunaSession> _sessions = [];
   bool _isLoading = false;
   String? _errorMessage;
 
-  SessionController({SessionStorage? storage})
-      : _storage = storage ?? SharedPrefsSessionStorage();
+  SessionController({SessionStorage? storage, this.onSessionsDeleted})
+    : _storage = storage ?? SharedPrefsSessionStorage();
 
   List<SaunaSession> get sessions => List.unmodifiable(_sessions);
   bool get isLoading => _isLoading;
@@ -45,14 +47,17 @@ class SessionController extends ChangeNotifier {
 
   /// Imports many sessions at once, avoiding duplicates (at the storage level).
   Future<int> importSessions(List<SaunaSession> newSessions) async {
+    _errorMessage = null;
     try {
-      final existingIds = _sessions.map((s) => s.id).toSet();
-      final toAdd = newSessions.where((s) => !existingIds.contains(s.id)).toList();
-      
+      final existing = await _storage.getSessions();
+      final existingIds = existing.map((s) => s.id).toSet();
+      final toAdd = newSessions.where((s) => existingIds.add(s.id)).toList();
+
       if (toAdd.isNotEmpty) {
         await _storage.saveSessions(toAdd);
-        await loadSessions();
       }
+      _sessions = await _storage.getSessions();
+      notifyListeners();
       return toAdd.length;
     } catch (e) {
       _errorMessage = 'Błąd podczas importu sesji: $e';
@@ -62,9 +67,12 @@ class SessionController extends ChangeNotifier {
   }
 
   Future<bool> deleteSession(String id) async {
+    _errorMessage = null;
     try {
+      await onSessionsDeleted?.call([id]);
       await _storage.deleteSession(id);
-      await loadSessions();
+      _sessions = await _storage.getSessions();
+      notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = 'Błąd podczas usuwania sesji: $e';
@@ -74,10 +82,16 @@ class SessionController extends ChangeNotifier {
   }
 
   /// Usuwa wszystkie sesje z magazynu.
-  Future<bool> clearAllSessions() async {
+  Future<bool> clearAllSessions({bool syncDeletions = true}) async {
+    _errorMessage = null;
     try {
+      if (syncDeletions) {
+        final sessions = await _storage.getSessions();
+        await onSessionsDeleted?.call(sessions.map((s) => s.id).toList());
+      }
       await _storage.clearAll();
-      await loadSessions();
+      _sessions = await _storage.getSessions();
+      notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = 'Błąd podczas usuwania wszystkich sesji: $e';

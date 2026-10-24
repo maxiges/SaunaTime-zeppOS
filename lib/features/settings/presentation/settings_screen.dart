@@ -5,6 +5,8 @@ import '../../../core/localization/locale_controller.dart';
 import '../../../core/profile/user_profile_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
+import '../../cloud_sync/presentation/cloud_auth_controller.dart';
+import '../../cloud_sync/presentation/cloud_sync_screen.dart';
 import '../../http_server/services/http_server_service.dart';
 import '../../sessions/presentation/session_controller.dart';
 import 'http_server_screen.dart';
@@ -19,6 +21,7 @@ class SettingsScreen extends StatelessWidget {
   final UserProfileController userProfileController;
   final LocalHttpServerService serverService;
   final SessionController sessionController;
+  final CloudAuthController cloudAuthController;
 
   const SettingsScreen({
     super.key,
@@ -27,6 +30,7 @@ class SettingsScreen extends StatelessWidget {
     required this.userProfileController,
     required this.serverService,
     required this.sessionController,
+    required this.cloudAuthController,
   });
 
   void _push(BuildContext context, Widget screen) {
@@ -113,6 +117,19 @@ class SettingsScreen extends StatelessWidget {
         subtitle: l['settings_watch_subtitle'],
         onTap: () =>
             _push(context, HttpServerScreen(serverService: serverService)),
+      ),
+      _SettingsTile(
+        icon: Icons.cloud_sync_rounded,
+        iconColor: Colors.blue,
+        title: l['settings_cloud_sync_section'],
+        subtitle: l['settings_cloud_sync_subtitle'],
+        onTap: () => _push(
+          context,
+          CloudSyncScreen(
+            authController: cloudAuthController,
+            sessionController: sessionController,
+          ),
+        ),
       ),
       _SettingsTile(
         icon: Icons.info_outline_rounded,

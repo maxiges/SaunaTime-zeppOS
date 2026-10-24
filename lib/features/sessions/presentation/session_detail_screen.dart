@@ -79,7 +79,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
           Navigator.pop(context);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l['error_deleting_session'])),
+            SnackBar(content: Text(l['error_delete_session'])),
           );
         }
       }
@@ -127,7 +127,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    l['calorie_estimate_title'] ?? 'Szczegóły spalonych kalorii',
+                    l['calorie_estimate_title'],
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -138,19 +138,19 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
               _buildCalorieResultCard(context, l),
               const SizedBox(height: 24),
               Text(
-                l['calorie_profile_used'] ?? 'Użyty profil:',
+                l['calorie_profile_used'],
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               _buildProfileSummary(context, l, profile),
               const SizedBox(height: 24),
               Text(
-                l['calorie_formula_note_title'] ?? 'O kalkulacji',
+                l['calorie_formula_note_title'],
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
-                l['calorie_formula_note_desc'] ?? 'Obliczenia opierają się na formule Keytela, biorąc pod uwagę tętno, wiek, wagę oraz płeć.',
+                l['calorie_formula_note_desc'],
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -198,12 +198,12 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildSmallMetric(
-                l['calorie_per_min'] ?? 'kcal/min',
+                l['calorie_per_min'],
                 '${estimate.perMinuteRounded} kcal',
               ),
               _buildSmallMetric(
                 l['details_duration'],
-                '${_session.durationMinutes} min',
+                '${_session.durationMinutes} ${l['minutes_abbr']}',
               ),
             ],
           ),
@@ -284,7 +284,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = AppLocalizations.of(context);
-    final dateFormat = DateFormat('EEEE, d MMMM yyyy');
+    final dateFormat = DateFormat('EEEE, d MMMM yyyy', l.locale.languageCode);
     final timeFormat = DateFormat('HH:mm');
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 

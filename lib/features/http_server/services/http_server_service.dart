@@ -1,15 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 
-import '../../sessions/domain/models/measurement_sample.dart';
-import '../../sessions/domain/models/sauna_phase.dart';
+import '../../../core/profile/user_profile_controller.dart';
+import '../../cloud_sync/domain/services/crypto_service.dart';
+import '../../cloud_sync/presentation/cloud_auth_controller.dart';
 import '../../sessions/domain/models/sauna_session.dart';
-import '../../sessions/domain/models/session_source.dart';
+import '../../sessions/domain/services/watch_session_parser.dart';
 import '../../sessions/presentation/session_controller.dart';
 
 class HttpServerLogEntry {
@@ -54,6 +53,8 @@ class HttpServerLogEntry {
 
 class LocalHttpServerService extends ChangeNotifier {
   final SessionController sessionController;
+  final CloudAuthController? cloudAuthController;
+  final UserProfileController? userProfileController;
   HttpServer? _server;
   int _port = 8080;
   bool _isRunning = false;
@@ -61,7 +62,11 @@ class LocalHttpServerService extends ChangeNotifier {
   String? _localIp;
   final List<HttpServerLogEntry> _logs = [];
 
-  LocalHttpServerService({required this.sessionController});
+  LocalHttpServerService({
+    required this.sessionController,
+    this.cloudAuthController,
+    this.userProfileController,
+  });
 
   bool get isRunning => _isRunning;
   int get port => _port;
@@ -155,7 +160,7 @@ class LocalHttpServerService extends ChangeNotifier {
     );
     request.response.headers.add(
       'Access-Control-Allow-Headers',
-      'Origin, Content-Type, Accept',
+      'Origin, Content-Type, Accept, X-PIN, X-User-Email, X-Sync-Key',
     );
 
     if (method == 'OPTIONS') {
@@ -177,6 +182,11 @@ class LocalHttpServerService extends ChangeNotifier {
     try {
       if (method == 'GET' && (path == '/' || path == '/api/status')) {
         await _handleStatusEndpoint(request, requestBody: requestBody);
+      } else if (method == 'GET' &&
+          (path == '/api/watch/config' ||
+              path == '/api/config' ||
+              path == '/config')) {
+        await _handleWatchConfigEndpoint(request, requestBody: requestBody);
       } else if (method == 'POST' &&
           (path == '/api/sessions' || path == '/session')) {
         await _handleSessionIngestion(request, requestBody: requestBody);
@@ -234,6 +244,7 @@ class LocalHttpServerService extends ChangeNotifier {
       'app': 'sauna_time',
       'version': '1.0.0',
       'sessionsCount': sessionController.sessions.length,
+      'hasCloudSync': cloudAuthController != null && cloudAuthController!.isLoggedIn,
     });
 
     request.response.statusCode = HttpStatus.ok;
@@ -244,6 +255,122 @@ class LocalHttpServerService extends ChangeNotifier {
       request.uri.path,
       HttpStatus.ok,
       'Server status returned',
+      remoteAddress: remoteAddress,
+      userAgent: userAgent,
+      requestBody: requestBody.trim().isNotEmpty ? requestBody : null,
+      responseBody: body,
+      durationMs: stopwatch.elapsedMilliseconds,
+    );
+    await request.response.close();
+  }
+
+  /// Endpoint dedicated for Zepp OS watch to fetch all configurations:
+  /// email, sync_key, cloud endpoint, local endpoint, and user profile.
+  Future<void> _handleWatchConfigEndpoint(
+    HttpRequest request, {
+    String requestBody = '',
+  }) async {
+    final stopwatch = Stopwatch()..start();
+    final remoteAddress = request.connectionInfo?.remoteAddress.address;
+    final userAgent = request.headers.value(HttpHeaders.userAgentHeader);
+
+    // Extract optional PIN from query ?pin=... or header X-PIN
+    final pinQuery = request.uri.queryParameters['pin'];
+    final pinHeader = request.headers.value('X-PIN');
+    final providedPin = (pinQuery != null && pinQuery.trim().isNotEmpty)
+        ? pinQuery.trim()
+        : pinHeader?.trim();
+
+    String? syncKey;
+    bool isUnlocked = false;
+
+    if (cloudAuthController != null) {
+      if (cloudAuthController!.isUnlocked) {
+        syncKey = cloudAuthController!.decryptedSyncKey;
+        isUnlocked = true;
+      } else if (providedPin != null && providedPin.length == 4) {
+        final salt = cloudAuthController!.user?.salt;
+        final encKey = cloudAuthController!.user?.encryptedSyncKey;
+        if (salt != null && encKey != null) {
+          try {
+            final map = jsonDecode(encKey) as Map<String, dynamic>;
+            syncKey = CryptoService.decryptWithPin(
+              map['ciphertext'] as String,
+              map['iv'] as String,
+              providedPin,
+              salt,
+            );
+            isUnlocked = true;
+          } catch (_) {
+            syncKey = null;
+          }
+        }
+      }
+    }
+
+    final localUrl = 'http://${_localIp ?? 'localhost'}:$_port/api/sessions';
+    final cloudUrl = cloudAuthController != null
+        ? '${cloudAuthController!.backendUrl}/api/sync/session'
+        : null;
+
+    Map<String, dynamic> responseData;
+
+    if (cloudAuthController == null || !cloudAuthController!.isLoggedIn) {
+      request.response.statusCode = HttpStatus.ok;
+      responseData = {
+        'status': 'local_only',
+        'is_logged_in': false,
+        'message':
+            'No cloud account connected. Watch can send sessions directly to local_upload_url.',
+        'local_upload_url': localUrl,
+        'server_port': _port,
+      };
+    } else if (isUnlocked && syncKey != null) {
+      request.response.statusCode = HttpStatus.ok;
+      responseData = {
+        'status': 'ok',
+        'is_logged_in': true,
+        'is_unlocked': true,
+        'email': cloudAuthController!.user?.email ?? '',
+        'sync_key': syncKey,
+        'cloud_upload_url': cloudUrl,
+        'cloud_backend_url': cloudAuthController!.backendUrl,
+        'local_upload_url': localUrl,
+        'server_port': _port,
+        'user_profile': userProfileController != null
+            ? {
+                'sex': userProfileController!.profile.sex.name,
+                'weight': userProfileController!.profile.weightKg,
+                'age': userProfileController!.profile.ageYears,
+                'preferred_sauna_type':
+                    userProfileController!.profile.preferredSaunaType.name,
+              }
+            : null,
+      };
+    } else {
+      request.response.statusCode = HttpStatus.ok;
+      responseData = {
+        'status': 'locked',
+        'is_logged_in': true,
+        'is_unlocked': false,
+        'message':
+            'Sauna Time is locked with PIN. Please unlock the app or provide ?pin=XXXX in the request to get sync key.',
+        'email': cloudAuthController!.user?.email ?? '',
+        'cloud_upload_url': cloudUrl,
+        'local_upload_url': localUrl,
+        'server_port': _port,
+      };
+    }
+
+    final body = jsonEncode(responseData);
+    request.response.headers.contentType = ContentType.json;
+    request.response.write(body);
+
+    _addLog(
+      'GET',
+      request.uri.path,
+      HttpStatus.ok,
+      'Watch config delivered (${responseData['status']})',
       remoteAddress: remoteAddress,
       userAgent: userAgent,
       requestBody: requestBody.trim().isNotEmpty ? requestBody : null,
@@ -308,9 +435,7 @@ class LocalHttpServerService extends ChangeNotifier {
 
     final session = parseWatchPayload(json);
 
-    // Duplicate protection — never store the same session twice (e.g. when the
-    // watch retries syncing the same session or sends a payload that already
-    // exists in the database).
+    // Duplicate protection — never store the same session twice
     if (await hasDuplicate(session)) {
       final body = jsonEncode({
         'success': true,
@@ -338,6 +463,14 @@ class LocalHttpServerService extends ChangeNotifier {
 
     await sessionController.addSession(session);
 
+    // If auto-sync with cloud is enabled and app is unlocked, push to cloud in background
+    if (cloudAuthController != null &&
+        cloudAuthController!.isLoggedIn &&
+        cloudAuthController!.isUnlocked &&
+        cloudAuthController!.autoSync) {
+      cloudAuthController!.syncWithCloud(sessionController).catchError((_) => false);
+    }
+
     final body = jsonEncode({
       'success': true,
       'sessionId': session.id,
@@ -362,244 +495,8 @@ class LocalHttpServerService extends ChangeNotifier {
     await request.response.close();
   }
 
-  SaunaSession parseWatchPayload(Map<String, dynamic> json) {
-    final id = json['id'] as String? ?? const Uuid().v4();
+  SaunaSession parseWatchPayload(Map<String, dynamic> json) => WatchSessionParser.parse(json);
 
-    // Time in the API is a Unix timestamp (seconds or milliseconds);
-    // we also accept ISO-8601 for backward compatibility.
-    final startTime =
-        parseTimestamp(json['startTime'] ?? json['date']) ?? DateTime.now();
-    final endTime = parseTimestamp(json['endTime']);
-
-    // Duration with second accuracy.
-    // Priority: 1) endTime - startTime, 2) durationSeconds,
-    //           3) durationMinutes (can be a fraction, e.g. 12.5),
-    //           4) default 15 min.
-    final int? explicitDurationSeconds = _toInt(json['durationSeconds']);
-    final num? durationMinutesRaw =
-        _toDouble(json['durationMinutes']) ?? _toDouble(json['duration']);
-
-    int durationSeconds;
-    if (explicitDurationSeconds != null && explicitDurationSeconds > 0) {
-      durationSeconds = explicitDurationSeconds;
-    } else if (endTime != null) {
-      durationSeconds = endTime.difference(startTime).inSeconds;
-    } else if (durationMinutesRaw != null && durationMinutesRaw > 0) {
-      durationSeconds = (durationMinutesRaw * 60).round();
-    } else {
-      durationSeconds = 15 * 60;
-    }
-    if (durationSeconds <= 0) {
-      durationSeconds = 60;
-    }
-
-    // durationMinutes remains an integer (rounded), while
-    // endTime is always precise to the second.
-    final int durationMinutes = (durationSeconds / 60)
-        .round()
-        .clamp(1, 1 << 31)
-        .toInt();
-
-    final temperature =
-        _toDouble(json['temperature']) ?? _toDouble(json['temp']);
-
-    final averageHeartRate =
-        _toInt(json['averageHeartRate']) ??
-        _toInt(json['avgHr']) ??
-        _toInt(json['avg_heart_rate']);
-
-    final maxHeartRate =
-        _toInt(json['maxHeartRate']) ??
-        _toInt(json['maxHr']) ??
-        _toInt(json['max_heart_rate']);
-
-    final notes = json['notes'] as String? ?? json['comment'] as String?;
-
-    // Sauna phases (from 1 to 3): heating, cooling, resting.
-    final parsedPhases = _parsePhasesFromPayload(json);
-    final effectiveEndTime =
-        endTime ?? startTime.add(Duration(seconds: durationSeconds));
-
-    final Map<SaunaPhase, int> phaseDurations = {};
-    for (int i = 0; i < parsedPhases.phases.length; i++) {
-      phaseDurations[parsedPhases.phases[i]] = parsedPhases.durationsMinutes[i];
-    }
-
-    // Parse samples
-    final List<MeasurementSample> heartRateSamples = [];
-    if (json['heartRateSamples'] is List) {
-      for (final item in json['heartRateSamples'] as List) {
-        if (item is Map<String, dynamic>) {
-          heartRateSamples.add(MeasurementSample.fromJson(item));
-        }
-      }
-    } else if (json['heart_rate_samples'] is List) {
-      for (final item in json['heart_rate_samples'] as List) {
-        if (item is Map<String, dynamic>) {
-          heartRateSamples.add(MeasurementSample.fromJson(item));
-        }
-      }
-    }
-
-    final List<MeasurementSample> temperatureSamples = [];
-    if (json['temperatureSamples'] is List) {
-      for (final item in json['temperatureSamples'] as List) {
-        if (item is Map<String, dynamic>) {
-          temperatureSamples.add(MeasurementSample.fromJson(item));
-        }
-      }
-    }
-
-    // If the payload declares phases but samples don't have assigned phases,
-    // we assign phases based on duration — so charts know how to color individual stages.
-    final heartRateSamplesWithPhases = parsedPhases.phases.isEmpty
-        ? heartRateSamples
-        : _tagSamplesWithPhases(
-            heartRateSamples,
-            parsedPhases.phases,
-            parsedPhases.durationsMinutes,
-            startTime,
-            effectiveEndTime,
-          );
-    final temperatureSamplesWithPhases = parsedPhases.phases.isEmpty
-        ? temperatureSamples
-        : _tagSamplesWithPhases(
-            temperatureSamples,
-            parsedPhases.phases,
-            parsedPhases.durationsMinutes,
-            startTime,
-            effectiveEndTime,
-          );
-
-    return SaunaSession(
-      id: id,
-      startTime: startTime,
-      endTime: effectiveEndTime,
-      durationMinutes: durationMinutes,
-      source: SessionSource.watchHttp,
-      temperature: temperature,
-      averageHeartRate: averageHeartRate,
-      maxHeartRate: maxHeartRate,
-      notes: notes,
-      heartRateSamples: _defaultPhaseForSamples(heartRateSamplesWithPhases),
-      temperatureSamples: _defaultPhaseForSamples(temperatureSamplesWithPhases),
-      phases: parsedPhases.phases,
-      phaseDurations: phaseDurations,
-    );
-  }
-
-  /// No phase specified on the sample means phase 1 (heating).
-  List<MeasurementSample> _defaultPhaseForSamples(
-    List<MeasurementSample> samples,
-  ) {
-    return [
-      for (final sample in samples)
-        sample.phase != null
-            ? sample
-            : MeasurementSample(
-                timestamp: sample.timestamp,
-                value: sample.value,
-                phase: SaunaPhase.heating,
-              ),
-    ];
-  }
-
-  _ParsedPhases _parsePhasesFromPayload(Map<String, dynamic> json) {
-    final phases = <SaunaPhase>[];
-    final durations = <int>[];
-
-    final raw = json['phases'] ?? json['stages'] ?? json['etapy'];
-    if (raw is List) {
-      for (final item in raw) {
-        SaunaPhase? phase;
-        var durationMinutes = 0;
-        if (item is num) {
-          // Optimized API: phase as a number 1/2/3.
-          phase = SaunaPhase.fromCode(item.toInt());
-        } else if (item is String) {
-          phase = SaunaPhase.fromJson(item);
-        } else if (item is Map) {
-          phase = SaunaPhase.fromJson(
-            item['type'] ?? item['phase'] ?? item['name'] ?? item['etap'],
-          );
-          durationMinutes =
-              _toInt(item['durationMinutes']) ??
-              _toInt(item['duration']) ??
-              _toInt(item['minutes']) ??
-              0;
-        }
-        if (phase != null && !phases.contains(phase)) {
-          phases.add(phase);
-          durations.add(durationMinutes);
-        }
-      }
-    }
-
-    return _ParsedPhases(phases, durations);
-  }
-
-  /// Assigns phases (stages) to samples that don't have them, dividing the duration.
-  List<MeasurementSample> _tagSamplesWithPhases(
-    List<MeasurementSample> samples,
-    List<SaunaPhase> phases,
-    List<int> durationsMinutes,
-    DateTime startTime,
-    DateTime endTime,
-  ) {
-    if (samples.isEmpty || phases.isEmpty) return samples;
-    // All samples already have phases — no change.
-    if (samples.every((s) => s.phase != null)) return samples;
-
-    final totalMinutes = math.max(1, endTime.difference(startTime).inMinutes);
-
-    // Phase boundaries (in minutes from session start).
-    final boundaries = <double>[];
-    final hasDurations = durationsMinutes.any((d) => d > 0);
-    var accumulated = 0.0;
-    if (hasDurations) {
-      final totalDuration = durationsMinutes.fold<int>(0, (a, b) => a + b);
-      for (var i = 0; i < phases.length; i++) {
-        final duration = durationsMinutes[i] > 0
-            ? durationsMinutes[i]
-            : totalDuration ~/ phases.length;
-        accumulated += duration;
-        boundaries.add(accumulated);
-      }
-    } else {
-      final slice = totalMinutes / phases.length;
-      for (var i = 1; i <= phases.length; i++) {
-        boundaries.add(slice * i);
-      }
-    }
-
-    SaunaPhase phaseAt(double minutesFromStart) {
-      var index = phases.length - 1;
-      for (var i = 0; i < boundaries.length; i++) {
-        if (minutesFromStart <= boundaries[i]) {
-          index = i;
-          break;
-        }
-      }
-      return phases[index];
-    }
-
-    return [
-      for (final sample in samples)
-        sample.phase != null
-            ? sample
-            : MeasurementSample(
-                timestamp: sample.timestamp,
-                value: sample.value,
-                phase: phaseAt(
-                  sample.timestamp.difference(startTime).inSeconds / 60.0,
-                ),
-              ),
-    ];
-  }
-
-  /// Ensures the current session list is loaded and then checks if the
-  /// session is a duplicate (by id or content "fingerprint").
-  /// Returns true if the session SHOULD NOT be saved again.
   Future<bool> hasDuplicate(SaunaSession session) async {
     if (sessionController.sessions.isEmpty) {
       await sessionController.loadSessions();
@@ -607,11 +504,6 @@ class LocalHttpServerService extends ChangeNotifier {
     return isDuplicate(session);
   }
 
-  /// Checks for duplicates against the currently loaded session list:
-  ///  1. Same ID (id) — POST is idempotent.
-  ///  2. Same content "fingerprint" (source + start to minute + duration)
-  ///     — protects against adding the same entry multiple times, even if
-  ///     the watch generates a new ID on each sync attempt.
   bool isDuplicate(SaunaSession session) {
     final fingerprint = _sessionFingerprint(session);
     return sessionController.sessions.any(
@@ -619,16 +511,15 @@ class LocalHttpServerService extends ChangeNotifier {
     );
   }
 
-  /// Stable session content identifier used for duplicate detection.
-  /// Consists of source, start time (UTC, to minute accuracy)
-  /// and duration in minutes.
   String _sessionFingerprint(SaunaSession session) {
     final startKey = session.startTime.toUtc().toIso8601String().substring(
       0,
       16,
-    ); // YYYY-MM-DDTHH:MM
+    );
     return '${session.source.name}|$startKey|${session.durationMinutes}';
   }
+
+  DateTime? parseTimestamp(dynamic value) => WatchSessionParser.parseTimestamp(value);
 
   void _addLog(
     String method,
@@ -675,27 +566,3 @@ class LocalHttpServerService extends ChangeNotifier {
   }
 }
 
-/// Parsing result of phases: list of phases and (optionally) their durations in minutes.
-class _ParsedPhases {
-  final List<SaunaPhase> phases;
-  final List<int> durationsMinutes;
-
-  const _ParsedPhases(this.phases, this.durationsMinutes);
-}
-
-/// Safe conversion to a floating-point number — accepts numbers and
-/// numeric strings (e.g. "34.8"). Returns null for invalid values.
-/// This prevents internal errors when numeric values are sent as strings.
-double? _toDouble(dynamic value) {
-  if (value == null) return null;
-  if (value is num) return value.toDouble();
-  if (value is String) {
-    return double.tryParse(value.trim());
-  }
-  return null;
-}
-
-/// Like _toDouble, but returns an integer.
-int? _toInt(dynamic value) {
-  return _toDouble(value)?.toInt();
-}

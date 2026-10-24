@@ -6,19 +6,27 @@ import 'package:sauna_time/core/localization/locale_controller.dart';
 import 'package:sauna_time/core/profile/user_profile_controller.dart';
 import 'package:sauna_time/core/theme/app_colors.dart';
 import 'package:sauna_time/core/theme/theme_controller.dart';
+import 'package:sauna_time/features/cloud_sync/presentation/cloud_auth_controller.dart';
 import 'package:sauna_time/features/home/presentation/splash_screen.dart';
 import 'package:sauna_time/features/http_server/services/http_server_service.dart';
 import 'package:sauna_time/features/sessions/presentation/session_controller.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final sessionController = SessionController();
-  final serverService = LocalHttpServerService(
-    sessionController: sessionController,
+  final cloudAuthController = CloudAuthController();
+  final sessionController = SessionController(
+    onSessionsDeleted: cloudAuthController.deleteCloudSessions,
   );
   final localeController = LocaleController();
   final themeController = ThemeController();
   final userProfileController = UserProfileController();
+  cloudAuthController.init();
+
+  final serverService = LocalHttpServerService(
+    sessionController: sessionController,
+    cloudAuthController: cloudAuthController,
+    userProfileController: userProfileController,
+  );
 
   serverService.startServer(port: 8080);
 
@@ -29,6 +37,7 @@ void main() {
       localeController: localeController,
       themeController: themeController,
       userProfileController: userProfileController,
+      cloudAuthController: cloudAuthController,
     ),
   );
 }
@@ -177,6 +186,7 @@ class SaunaTimeApp extends StatefulWidget {
   final LocaleController localeController;
   final ThemeController themeController;
   final UserProfileController userProfileController;
+  final CloudAuthController cloudAuthController;
 
   const SaunaTimeApp({
     super.key,
@@ -185,6 +195,7 @@ class SaunaTimeApp extends StatefulWidget {
     required this.localeController,
     required this.themeController,
     required this.userProfileController,
+    required this.cloudAuthController,
   });
 
   @override
@@ -258,6 +269,7 @@ class _SaunaTimeAppState extends State<SaunaTimeApp> {
         localeController: widget.localeController,
         themeController: widget.themeController,
         userProfileController: widget.userProfileController,
+        cloudAuthController: widget.cloudAuthController,
       ),
     );
   }

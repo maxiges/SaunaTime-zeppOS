@@ -253,7 +253,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 24.0),
                   child: Text(
                     _rangeStart == null
-                        ? (l['calendar_no_selection'] ?? 'Wybierz datę')
+                        ? l['calendar_no_selection']
                         : l['calendar_no_sessions'],
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant.withValues(
@@ -539,6 +539,7 @@ class _StatStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l = AppLocalizations.of(context);
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: isCompact ? 8 : 16,
@@ -560,13 +561,13 @@ class _StatStrip extends StatelessWidget {
                     _CompactStatItem(
                       icon: Icons.calendar_today_rounded,
                       value: '$days',
-                      label: 'dni',
+                      label: l['calendar_stat_days'],
                       color: theme.colorScheme.primary,
                     ),
                     _CompactStatItem(
                       icon: Icons.hot_tub_rounded,
                       value: '$sessions',
-                      label: 'sesji',
+                      label: l['calendar_stat_sessions'],
                       color: AppColors.warmOrange,
                     ),
                   ],
@@ -578,7 +579,7 @@ class _StatStrip extends StatelessWidget {
                     _CompactStatItem(
                       icon: Icons.timer_outlined,
                       value: '$minutes',
-                      label: 'min',
+                      label: l['minutes_abbr'],
                       color: Colors.indigo,
                     ),
                     _CompactStatItem(
@@ -597,19 +598,19 @@ class _StatStrip extends StatelessWidget {
                 _CompactStatItem(
                   icon: Icons.calendar_today_rounded,
                   value: '$days',
-                  label: 'dni',
+                  label: l['calendar_stat_days'],
                   color: theme.colorScheme.primary,
                 ),
                 _CompactStatItem(
                   icon: Icons.hot_tub_rounded,
                   value: '$sessions',
-                  label: 'sesji',
+                  label: l['calendar_stat_sessions'],
                   color: AppColors.warmOrange,
                 ),
                 _CompactStatItem(
                   icon: Icons.timer_outlined,
                   value: '$minutes',
-                  label: 'min',
+                  label: l['minutes_abbr'],
                   color: Colors.indigo,
                 ),
                 _CompactStatItem(

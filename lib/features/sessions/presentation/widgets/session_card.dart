@@ -137,7 +137,7 @@ class SessionCard extends StatelessWidget {
                           icon: Icons.bolt_rounded,
                           value: '${session.maxHeartRate}',
                           color: AppColors.warmRed.withValues(alpha: 0.6),
-                          label: 'MAX',
+                          label: l['label_max'],
                           isSmall: true,
                         ),
                     ],
@@ -197,7 +197,7 @@ class SessionCard extends StatelessWidget {
               children: [
                 Text(l.phaseLabel(SaunaPhase.heating).toUpperCase(),
                     style: theme.textTheme.labelSmall?.copyWith(fontSize: 7, fontWeight: FontWeight.bold, color: AppColors.warmRed)),
-                Text('$heatingMin min',
+                Text('$heatingMin ${l['minutes_abbr']}',
                     style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: AppColors.warmRed)),
               ],
             ),
@@ -209,8 +209,8 @@ class SessionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('TOTAL', style: theme.textTheme.labelSmall?.copyWith(fontSize: 7, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)),
-              Text('${session.durationMinutes} min', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold)),
+              Text(l['label_total'], style: theme.textTheme.labelSmall?.copyWith(fontSize: 7, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)),
+              Text('${session.durationMinutes} ${l['minutes_abbr']}', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold)),
             ],
           ),
         ],
@@ -252,7 +252,7 @@ class SessionCard extends StatelessWidget {
         children: [
           Icon(Icons.watch_rounded, size: 12, color: theme.colorScheme.secondary),
           const SizedBox(width: 4),
-          Text('WATCH', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.secondary, fontSize: 8)),
+          Text(l['label_watch'], style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.secondary, fontSize: 8)),
         ],
       ),
     );

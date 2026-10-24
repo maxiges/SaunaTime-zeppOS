@@ -338,6 +338,7 @@ class _HttpServerScreenState extends State<HttpServerScreen> {
     HttpServerLogEntry log,
   ) async {
     final theme = Theme.of(context);
+    final l = AppLocalizations.of(context);
     final fullTimeFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
     final statusColor = log.statusCode >= 200 && log.statusCode < 300
         ? Colors.green.shade800
@@ -403,28 +404,28 @@ class _HttpServerScreenState extends State<HttpServerScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _LogDetailRow(label: 'Path', value: log.path),
+                  _LogDetailRow(label: l['log_path'], value: log.path),
                   if (log.remoteAddress != null)
                     _LogDetailRow(
-                      label: 'Remote address',
+                      label: l['log_remote_address'],
                       value: log.remoteAddress!,
                     ),
                   if (log.userAgent != null)
-                    _LogDetailRow(label: 'User-Agent', value: log.userAgent!),
+                    _LogDetailRow(label: l['log_user_agent'], value: log.userAgent!),
                   if (log.durationMs != null)
                     _LogDetailRow(
-                      label: 'Duration',
+                      label: l['log_duration'],
                       value: '${log.durationMs} ms',
                     ),
                   if (log.error != null && log.error!.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    _LogDetailBlock(label: 'Error', text: log.error!),
+                    _LogDetailBlock(label: l['log_error'], text: log.error!),
                   ],
                   if (log.requestBody != null &&
                       log.requestBody!.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     _LogDetailBlock(
-                      label: 'Request body',
+                      label: l['log_request_body'],
                       text: log.requestBody!,
                     ),
                   ],
@@ -432,7 +433,7 @@ class _HttpServerScreenState extends State<HttpServerScreen> {
                       log.responseBody!.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     _LogDetailBlock(
-                      label: 'Response body',
+                      label: l['log_response_body'],
                       text: log.responseBody!,
                     ),
                   ],
@@ -544,6 +545,14 @@ class _HttpServerScreenState extends State<HttpServerScreen> {
                           ),
                           Text(
                             'api/sessions',
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            l['server_watch_config_endpoint'],
+                            style: theme.textTheme.labelSmall,
+                          ),
+                          Text(
+                            'api/watch/config',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 11,
